@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="payment_provider_form_scotiabank_ecom" model="ir.ui.view">
+        <field name="name">payment.provider.form.scotiabank.ecom</field>
+        <field name="model">payment.provider</field>
+        <field name="inherit_id" ref="payment.payment_provider_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet//notebook" position="inside">
+                <page string="Scotiabank eCom+" name="scotiabank_ecom" invisible="code != 'scotiabank_ecom'">
+                    <group string="Credentials">
+                        <field name="scotia_store_id" required="code == 'scotiabank_ecom'"/>
+                        <field name="scotia_shared_secret" password="True" required="code == 'scotiabank_ecom'"/>
+                    </group>
+                    <group string="Gateway Configuration">
+                        <field name="scotia_sandbox_gateway_url"/>
+                        <field name="scotia_live_gateway_url"/>
+                        <field name="scotia_sandbox_currency_override" placeholder="840"/>
+                        <field name="scotia_live_currency_override" placeholder="Leave blank for Odoo currency"/>
+                        <field name="scotia_timezone"/>
+                        <field name="scotia_display_mode"/>
+                        <field name="scotia_require_response_hash"/>
+                    </group>
+                    <group string="Checkout Display">
+                        <field name="scotia_payment_title"/>
+                        <field name="scotia_payment_description"/>
+                        <field name="scotia_trust_message"/>
+                        <field name="scotia_show_card_logos"/>
+                    </group>
+                    <group string="Branding">
+                        <field name="scotia_logo_url" placeholder="https://example.com/logo.png"/>
+                        <field name="scotia_header_color"/>
+                        <field name="scotia_button_color"/>
+                        <field name="scotia_background_color"/>
+                        <field name="scotia_handoff_message"/>
+                        <field name="scotia_loading_message"/>
+                        <field name="scotia_show_powered_by"/>
+                    </group>
+                    <group string="Debug & Diagnostics">
+                        <field name="scotia_debug"/>
+                        <field name="scotia_last_diagnostic" readonly="1" nolabel="1"/>
+                    </group>
+                    <div class="alert alert-warning" role="alert">
+                        Currency override only changes the numeric currency code sent to Scotiabank/Fiserv. It does not convert the amount.
+                        For example, sandbox may accept USD/840 while a Trinidad live store should usually use TTD/780 when enabled by Scotiabank.
+                    </div>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>
