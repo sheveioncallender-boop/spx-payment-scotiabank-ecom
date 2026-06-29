@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo noupdate="1">
+    <record id="payment_provider_scotiabank_ecom" model="payment.provider">
+        <field name="name">Scotiabank eCom+</field>
+        <field name="code">scotiabank_ecom</field>
+        <field name="state">disabled</field>
+        <field name="redirect_form_view_id" ref="spx_payment_scotiabank_ecom.redirect_form_scotiabank_ecom"/>
+        <field name="scotia_sandbox_gateway_url">https://test.ipg-online.com/connect/gateway/processing</field>
+        <field name="scotia_live_gateway_url">https://www2.ipg-online.com/connect/gateway/processing</field>
+        <field name="scotia_display_mode">handoff</field>
+        <field name="scotia_payment_title">Scotiabank eCom+</field>
+        <field name="scotia_payment_description">Pay securely with your Credit or Debit Card through Scotiabank eCom+.</field>
+        <field name="scotia_trust_message">Payments are securely processed by Scotiabank eCom+.</field>
+    </record>
+</odoo>
