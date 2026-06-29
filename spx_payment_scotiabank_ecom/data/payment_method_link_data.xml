@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <!-- Link the standard Odoo Card payment method to the Scotiabank provider.
+         This makes Scotiabank appear properly in Odoo 19 checkout and in the provider's Payment Methods smart button. -->
+    <record id="payment_provider_scotiabank_ecom" model="payment.provider">
+        <field name="payment_method_ids" eval="[(4, ref('payment.payment_method_card'))]"/>
+    </record>
+</odoo>
