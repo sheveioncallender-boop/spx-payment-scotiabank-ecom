@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="paybridge_redirect_form" name="Scotiabank eCom+ Redirect">
+        <form t-att-action="api_url" method="post">
+            <t t-foreach="inputs" t-as="item">
+                <input type="hidden" t-att-name="item[0]" t-att-value="item[1]"/>
+            </t>
+        </form>
+    </template>
+</odoo>

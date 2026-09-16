@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="paybridge_transaction_form" model="ir.ui.view">
+        <field name="name">Scotiabank eCom+ Transaction</field>
+        <field name="model">payment.transaction</field>
+        <field name="inherit_id" ref="payment.payment_transaction_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet" position="inside">
+                <group string="Scotiabank eCom+" invisible="provider_code != 'spx_paybridge_scotia'">
+                    <group string="Payment Attempt">
+                        <field name="scotia_environment"/>
+                        <field name="scotia_oid"/>
+                        <field name="scotia_gateway_store_id"/>
+                        <field name="scotia_request_datetime"/>
+                        <field name="scotia_request_amount"/>
+                        <field name="scotia_gateway_currency_alpha"/>
+                    </group>
+                    <group string="Verified Result">
+                        <field name="scotia_response_hash_validated"/>
+                        <field name="scotia_approval_code"/>
+                        <field name="scotia_response_status"/>
+                        <field name="scotia_signature_type"/>
+                        <field name="scotia_notification_received_at"/>
+                        <field name="scotia_return_received_at"/>
+                    </group>
+                    <group string="Reported Gateway Details">
+                        <field name="scotia_ipg_transaction_id"/>
+                        <field name="scotia_refnumber"/>
+                        <field name="scotia_processor_response_code"/>
+                        <field name="scotia_3ds_response"/>
+                        <field name="scotia_card_brand"/>
+                        <field name="scotia_card_mask"/>
+                    </group>
+                </group>
+            </xpath>
+        </field>
+    </record>
+    <record id="payment_transaction_search_scotiabank" model="ir.ui.view">
+        <field name="name">Scotiabank Transaction Search</field>
+        <field name="model">payment.transaction</field>
+        <field name="inherit_id" ref="payment.payment_transaction_search"/>
+        <field name="arch" type="xml">
+            <field name="reference" position="after">
+                <field name="scotia_oid"/>
+                <field name="scotia_ipg_transaction_id"/>
+                <filter string="Scotiabank eCom+" name="scotiabank" domain="[('provider_code', '=', 'spx_paybridge_scotia')]"/>
+                <filter string="Scotiabank: Awaiting Confirmation" name="scotiabank_pending"
+                        domain="[('provider_code', '=', 'spx_paybridge_scotia'), ('state', 'in', ['draft', 'pending'])]"/>
+            </field>
+        </field>
+    </record>
+</odoo>

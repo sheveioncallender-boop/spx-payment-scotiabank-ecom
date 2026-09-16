@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="paybridge_provider_form" model="ir.ui.view">
+        <field name="name">Scotiabank eCom+ Provider</field>
+        <field name="model">payment.provider</field>
+        <field name="inherit_id" ref="payment.payment_provider_form"/>
+        <field name="arch" type="xml">
+            <group name="provider_credentials" position="inside">
+                <group string="Test Credentials" invisible="code != 'spx_paybridge_scotia'" groups="base.group_system">
+                    <field name="scotia_sandbox_store_id" required="code == 'spx_paybridge_scotia' and state == 'test'"/>
+                    <field name="scotia_sandbox_shared_secret" password="True" required="code == 'spx_paybridge_scotia' and state == 'test'"/>
+                </group>
+                <group string="Live Credentials" invisible="code != 'spx_paybridge_scotia'" groups="base.group_system">
+                    <field name="scotia_live_store_id" required="code == 'spx_paybridge_scotia' and state == 'enabled'"/>
+                    <field name="scotia_live_shared_secret" password="True" required="code == 'spx_paybridge_scotia' and state == 'enabled'"/>
+                </group>
+                <div class="alert alert-info" invisible="code != 'spx_paybridge_scotia'" colspan="2">
+                    Test Mode uses test credentials; Enabled uses live credentials.
+                    Card details are entered on Scotiabank's secure hosted page.
+                    Configure the standard Payment Journal and supported Currencies in Configuration.
+                </div>
+            </group>
+            <xpath expr="//sheet/notebook" position="inside">
+                <page string="Scotiabank Connection" name="paybridge_connection" invisible="code != 'spx_paybridge_scotia'">
+                    <group string="Payment Connection">
+                        <field name="scotia_notification_url" widget="url" readonly="1"/>
+                        <field name="scotia_return_url" widget="url" readonly="1"/>
+                    </group>
+                    <div class="text-muted mb-3">
+                        These addresses are included automatically in every payment request.
+                        Bank notifications confirm payments independently of the customer's browser.
+                        Successful payments continue through Odoo's standard accounting workflow.
+                    </div>
+                    <button name="action_scotia_check_configuration" type="object" string="Check Configuration"
+                            class="btn-primary" groups="base.group_system"/>
+                    <p class="text-muted mt-2">Checks local settings. A test payment verifies credentials and the complete bank connection.</p>
+                    <group string="Credential Rotation" groups="base.group_system">
+                        <field name="scotia_sandbox_previous_secret" password="True"/>
+                        <field name="scotia_live_previous_secret" password="True"/>
+                    </group>
+                    <p class="text-muted" groups="base.group_system">Leave previous secrets empty for normal setup. Use them only when replacing an existing secret while older payments await confirmation.</p>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>

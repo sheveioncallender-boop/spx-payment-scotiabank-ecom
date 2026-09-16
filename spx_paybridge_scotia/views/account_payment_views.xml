@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="account_payment_form_scotiabank" model="ir.ui.view">
+        <field name="name">Scotiabank Customer Payment</field>
+        <field name="model">account.payment</field>
+        <field name="inherit_id" ref="account.view_account_payment_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <field name="scotia_is_payment" invisible="1"/>
+                <button name="action_scotia_view_transaction" type="object" class="oe_stat_button"
+                        icon="fa-credit-card" invisible="not scotia_is_payment">
+                    <div class="o_stat_info"><span class="o_stat_text">Scotiabank</span><span class="o_stat_text">Transaction</span></div>
+                </button>
+            </xpath>
+            <xpath expr="//sheet" position="inside">
+                <group string="Scotiabank eCom+" invisible="not scotia_is_payment">
+                    <field name="scotia_order_reference"/>
+                    <field name="scotia_bank_transaction_id"/>
+                    <field name="scotia_signature_verified"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+</odoo>
