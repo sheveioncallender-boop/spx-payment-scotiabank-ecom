@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <record id="payment_provider_paybridge" model="payment.provider">
+        <field name="name">Scotiabank eCom+</field>
+        <field name="code">spx_paybridge_scotia</field>
+        <field name="state">disabled</field>
+        <field name="is_published" eval="False"/>
+        <field name="module_id" ref="base.module_spx_paybridge_scotia"/>
+        <field name="redirect_form_view_id" ref="paybridge_redirect_form"/>
+        <field name="payment_method_ids" eval="[(4, ref('payment.payment_method_card'))]"/>
+        <field name="pre_msg" type="html"><p>Pay securely by card with Scotiabank eCom+.</p></field>
+        <field name="pending_msg" type="html"><p>We are waiting for confirmation from Scotiabank. Please do not submit another payment while this one is being confirmed.</p></field>
+    </record>
+</odoo>

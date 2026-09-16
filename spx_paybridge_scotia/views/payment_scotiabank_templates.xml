@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="paybridge_redirect_form" name="Scotiabank eCom+ Redirect">
+        <form t-att-action="api_url" method="post">
+            <t t-foreach="inputs" t-as="item">
+                <input type="hidden" t-att-name="item[0]" t-att-value="item[1]"/>
+            </t>
+        </form>
+    </template>
+    <template id="paybridge_page" name="Scotiabank eCom+ Payment Handoff">
+        <html lang="en">
+            <head>
+                <meta charset="utf-8"/>
+                <meta name="viewport" content="width=device-width, initial-scale=1"/>
+                <meta name="robots" content="noindex, nofollow"/>
+                <meta name="referrer" content="no-referrer"/>
+                <title>Secure Scotiabank eCom+ Payment</title>
+                <link rel="stylesheet" href="/spx_paybridge_scotia/static/src/css/checkout.css?v=19.0.1.1.0"/>
+                <script defer="defer" src="/spx_paybridge_scotia/static/src/js/checkout.js?v=19.0.1.1.0"/>
+            </head>
+            <body>
+                <main t-att-class="'spx-card spx-embedded' if screen == 'checkout' and embedded else 'spx-card'">
+                    <header class="spx-top">
+                        <img t-if="show_branding" src="/spx_paybridge_scotia/static/src/img/spxcorp-logo-white.png" alt="SPXCORP LTD"/>
+                        <span t-else="" class="spx-merchant" t-out="company_name or 'Secure payment'"/>
+                    </header>
+                    <div class="spx-body">
+                        <t t-if="screen == 'checkout'">
+                            <div t-if="test_mode" class="spx-test">Test Mode — no real payment</div>
+                            <div id="spx-loading" class="spx-spinner" aria-hidden="true"/>
+                            <h1>Secure Scotiabank eCom+ Payment</h1>
+                            <p t-if="embedded">Complete your payment securely using the bank form below.</p>
+                            <p t-else="">You are being securely connected to Scotiabank eCom+ to complete your payment.</p>
+                            <dl class="spx-details">
+                                <div><dt>Reference</dt><dd t-out="reference"/></div>
+                                <div><dt>Amount</dt><dd><t t-out="amount"/> <t t-out="currency"/></dd></div>
+                            </dl>
+                            <p t-if="simulation" class="spx-test-note">
+                                Sandbox simulation: <t t-out="amount"/> <t t-out="original_currency"/>
+                                is being tested as <t t-out="amount"/> USD. No currency conversion is performed.
+                            </p>
+                            <form id="spx-bank-form" t-att-action="api_url" method="post"
+                                  t-att-target="'spx-bank-frame' if embedded else '_top'">
+                                <t t-foreach="inputs" t-as="item">
+                                    <input type="hidden" t-att-name="item[0]" t-att-value="item[1]"/>
+                                </t>
+                                <button type="submit" id="spx-continue">Continue to Payment</button>
+                            </form>
+                            <noscript><p>Select Continue to Payment to open the bank's payment page.</p></noscript>
+                            <iframe t-if="embedded" id="spx-bank-frame" name="spx-bank-frame"
+                                    class="spx-frame" title="Scotiabank eCom+ payment form" referrerpolicy="no-referrer"/>
+                            <p class="spx-help">Already submitted your payment? <a href="/payment/status" target="_top">Check payment status</a>.</p>
+                            <p t-if="show_branding" class="spx-powered">Payment integration powered by SPXCORP LTD</p>
+                        </t>
+                        <t t-elif="screen == 'bridge'">
+                            <div class="spx-spinner" aria-hidden="true"/>
+                            <h1>Returning to your payment</h1>
+                            <p>Please wait while we open your payment status.</p>
+                            <a id="spx-return" class="spx-button" t-att-href="target" target="_top">Continue</a>
+                        </t>
+                        <t t-else="">
+                            <h1>We couldn't confirm this payment</h1>
+                            <p>The payment response or payment link could not be verified.</p>
+                            <p>Your payment may still be processing. Check its status before making another attempt.</p>
+                            <a class="spx-button" href="/payment/status" target="_top">Check payment status</a>
+                        </t>
+                    </div>
+                </main>
+            </body>
+        </html>
+    </template>
+</odoo>
