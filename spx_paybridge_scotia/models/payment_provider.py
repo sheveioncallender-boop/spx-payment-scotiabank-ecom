@@ -32,23 +32,29 @@ class PaymentProvider(models.Model):
         string='Bank Notification URL', compute='_compute_scotia_urls',
     )
     scotia_return_url = fields.Char(string='Customer Return URL', compute='_compute_scotia_urls')
+    # Cloudpepper can load the new Python code before the Apps upgrade creates
+    # these columns. Odoo recomputes provider.color at the upgrade's initial
+    # commit, before Registry.new(update_module=True). Keep newly introduced
+    # settings out of that native read's prefetch; the normal upgrade creates
+    # their columns and defaults. Do not alter Odoo's upgrade or accounting code.
     scotia_sandbox_usd_override = fields.Boolean(
-        string='Sandbox USD Override', default=True,
+        string='Sandbox USD Override', default=True, prefetch=False,
         help='Test Mode only: send the same numeric amount as USD to the test gateway. '
              'This is a test simulation, not currency conversion. Odoo keeps the original '
              'order currency. Live payments always use the actual order currency.',
     )
     scotia_display_mode = fields.Selection(
         const.DISPLAY_MODES, string='Payment Display Mode', default='redirect', required=True,
+        prefetch=False,
     )
-    scotia_show_branding = fields.Boolean(string='Show Spxcorp Branding', default=True)
+    scotia_show_branding = fields.Boolean(string='Show Spxcorp Branding', default=True, prefetch=False)
     scotia_language = fields.Selection([
         ('en_GB', 'English (UK)'), ('en_US', 'English (US)'),
         ('es_ES', 'Spanish (Spain)'), ('es_MX', 'Spanish (Mexico)'),
         ('fr_FR', 'French'), ('pt_BR', 'Portuguese (Brazil)'),
-    ], string='Bank Page Language', default='en_GB', required=True)
+    ], string='Bank Page Language', default='en_GB', required=True, prefetch=False)
     scotia_log_summary = fields.Boolean(
-        string='Log Transaction Summaries', default=True,
+        string='Log Transaction Summaries', default=True, prefetch=False,
         help='Record internal transaction IDs, currency decisions and verification outcomes. '
              'Secrets, signatures, customer details and complete bank payloads are excluded.',
     )
@@ -74,7 +80,7 @@ class PaymentProvider(models.Model):
             except ValueError:
                 https = 'Needs a public HTTPS URL on port 443'
             provider.scotia_diagnostics = '\n'.join([
-                'PayBridge 19.0.1.1.0 | Local configuration only; bank acceptance not tested',
+                'PayBridge 19.0.1.1.1 | Local configuration only; bank acceptance not tested',
                 f'Mode: {provider.state} | Display: {provider.scotia_display_mode}',
                 f'Credentials: {"Entered" if store and secret else "Missing"}',
                 f'Store: {"****" + store[-4:] if store else "Missing"}',

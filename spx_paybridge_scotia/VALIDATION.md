@@ -1,7 +1,7 @@
 # PayBridge validation record
 
 Target: **Odoo 19 Enterprise**, fresh module `spx_paybridge_scotia`, version
-`19.0.1.1.0`. No live merchant credentials were used.
+`19.0.1.1.1`. No live merchant credentials were used.
 
 ## Executed locally
 
@@ -14,6 +14,7 @@ Target: **Odoo 19 Enterprise**, fresh module `spx_paybridge_scotia`, version
 | Protocol and currency/token-age tests | 30 passed |
 | HTTP body/parser and controller routing tests | 15 passed |
 | Actual Odoo 19 standalone QWeb rendering | 6 passed |
+| Upgrade prefetch regression using the actual Odoo 19 field-read selector | 5 passed |
 | Handoff JavaScript tests (Node) | 6 passed |
 | Inherited view insertion targets against current Odoo 19 source | All 6 matched |
 | Request HMAC against the published Fiserv manual vector | Passed |
@@ -37,6 +38,16 @@ The JavaScript cases check one submission for click plus automatic redirect,
 iframe loading, back/forward restoration, and fixed top-level return destinations.
 Browser screenshot checks were unavailable because the browser blocked local and
 offline preview URLs. No browser-level bank or 3-D Secure compatibility is claimed.
+
+The upgrade regression reproduces an absent-column error when the new provider
+fields join Odoo's native `module_id` prefetch. With the patch, the native read
+succeeds against the legacy table and new fields remain explicitly readable with
+their defaults after columns are added. Transaction snapshot fields receive the
+same check. Tests use the real Odoo 19 `BaseModel._fetch_field` method and field
+definitions, with disposable SQLite tables for the database boundary. This is a
+targeted field-loading test, not a PostgreSQL registry upgrade or an Enterprise
+installation test. The patch changes only the addon's new field prefetch flags;
+Odoo still creates the schema and performs the upgrade normally.
 
 Odoo reference source checked: branch `19.0`, commit
 `cee9ee44f3c21c5d01592d8fff520f1bb2840145`. The inspected provider, transaction,

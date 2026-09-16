@@ -4,7 +4,7 @@ A fresh payment-provider module for **Odoo 19 Enterprise** by **Spxcorp Limited*
 
 - App: **Spxcorp PayBridge - Scotiabank eCom+**
 - Technical module and provider code: `spx_paybridge_scotia`
-- Version: `19.0.1.1.0`
+- Version: `19.0.1.1.1`
 - Repository: `sheveioncallender-boop/spx-payment-scotiabank-ecom`
 - Deployment: new Odoo 19 Enterprise instance on Cloudpepper
 
@@ -62,9 +62,17 @@ PayBridge does not force their installation just to accept invoice payments.
 Pull/redeploy **rebuild-odoo19-enterprise** in Cloudpepper, then upgrade
 **Spxcorp PayBridge** in Apps. Restart Odoo as part of the normal module upgrade.
 Updating the Apps list alone is insufficient: this version adds database fields.
-Verify installed version **19.0.1.1.0**. Existing credentials and completed
+Verify installed version **19.0.1.1.1**. Existing credentials and completed
 transactions are retained. Start a new sandbox attempt from the original Odoo
 document; old attempts keep the currency and request time they originally used.
+
+If the previous upgrade failed with **column payment_provider.scotia_sandbox_usd_override
+does not exist**, pull version **19.0.1.1.1**, restart the Odoo service so every
+worker loads the fix, refresh the Apps page and retry **Upgrade** on PayBridge.
+The fix excludes newly added fields from unrelated automatic ORM reads before
+the native upgrade creates their columns. Their stored values, defaults and
+normal reads after upgrade are preserved. No uninstall, manual SQL, accounting
+override or credential re-entry is required by this patch.
 
 ## Configure
 

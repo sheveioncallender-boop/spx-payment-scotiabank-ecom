@@ -30,12 +30,21 @@ class PaymentTransaction(models.Model):
     scotia_gateway_currency_numeric = fields.Char(string='ISO Currency Code', readonly=True, copy=False)
     scotia_gateway_currency_alpha = fields.Char(string='Gateway Currency', readonly=True, copy=False)
     scotia_gateway_amount = fields.Float(string='Gateway Amount', readonly=True, copy=False)
-    scotia_original_currency_alpha = fields.Char(string='Original Odoo Currency', readonly=True, copy=False)
-    scotia_sandbox_override = fields.Boolean(string='Sandbox USD Simulation', readonly=True, copy=False)
-    scotia_display_mode = fields.Selection(const.DISPLAY_MODES, readonly=True, copy=False)
-    scotia_show_branding = fields.Boolean(readonly=True, copy=False)
-    scotia_language = fields.Char(readonly=True, copy=False)
-    scotia_handoff_started = fields.Boolean(string='Bank Form Issued', readonly=True, copy=False)
+    # These 1.1 fields are created by the module upgrade, after the new Python
+    # definitions may already be loaded. Native reads must not prefetch them
+    # while the database still has the 1.0 schema.
+    scotia_original_currency_alpha = fields.Char(
+        string='Original Odoo Currency', readonly=True, copy=False, prefetch=False,
+    )
+    scotia_sandbox_override = fields.Boolean(
+        string='Sandbox USD Simulation', readonly=True, copy=False, prefetch=False,
+    )
+    scotia_display_mode = fields.Selection(const.DISPLAY_MODES, readonly=True, copy=False, prefetch=False)
+    scotia_show_branding = fields.Boolean(readonly=True, copy=False, prefetch=False)
+    scotia_language = fields.Char(readonly=True, copy=False, prefetch=False)
+    scotia_handoff_started = fields.Boolean(
+        string='Bank Form Issued', readonly=True, copy=False, prefetch=False,
+    )
     scotia_ipg_transaction_id = fields.Char(string='Reported Bank Transaction ID', readonly=True, copy=False)
     scotia_refnumber = fields.Char(string='Reported Bank Reference', readonly=True, copy=False)
     scotia_approval_code = fields.Char(string='Verified Approval Code', readonly=True, copy=False)
