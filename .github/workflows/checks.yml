@@ -13,3 +13,7 @@ jobs:
         with:
           python-version: '3.12'
       - run: python spx_paybridge_scotia/tools/check_module.py
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: node --test spx_paybridge_scotia/tests/test_checkout.mjs

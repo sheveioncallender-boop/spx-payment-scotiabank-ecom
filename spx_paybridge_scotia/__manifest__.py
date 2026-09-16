@@ -1,6 +1,6 @@
 {
     'name': 'Spxcorp PayBridge - Scotiabank eCom+',
-    'version': '19.0.1.0.0',
+    'version': '19.0.1.1.0',
     'category': 'Accounting/Payment Providers',
     'summary': 'Scotiabank hosted payments with native Odoo 19 Enterprise accounting',
     'description': '''
@@ -9,6 +9,8 @@ Uses Odoo payment transactions, customer payments, invoices, journals,
 outstanding receipts, and the standard reconciliation workflow.
 Includes separate test/live credentials, payment-attempt signature
 verification, asynchronous bank notifications, and bank reference tracing.
+Includes a Test Mode USD simulation override, the original SPXCORP branded
+handoff, embedded hosted payment pages, and safe configuration diagnostics.
 Works with the existing Store ID and Shared Secret; no extra bank feature
 activation is required.
 Gateway refunds, capture, voids, saved cards and recurring charges are not

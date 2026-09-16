@@ -2,6 +2,7 @@
 import base64
 import hashlib
 import hmac
+import time
 from unittest.mock import patch
 
 from odoo import Command
@@ -9,7 +10,7 @@ from odoo.exceptions import ValidationError
 from odoo.tests import tagged
 from odoo.addons.account_payment.tests.common import AccountPaymentCommon
 
-from .. import const
+from .. import const, gateway
 
 
 @tagged('post_install', '-at_install')
@@ -77,6 +78,7 @@ class TestPayBridgeNativeFlow(AccountPaymentCommon):
         self.assertIn(tx.scotia_oid, tx.payment_id.memo)
         payment = tx.payment_id
         tx._process(const.PROVIDER_CODE, data)
+        tx._process(const.PROVIDER_CODE, self.bank_response(tx, source='return'))
         tx._post_process()
         self.assertEqual(tx.payment_id, payment)
         self.assertEqual(self.env['account.payment'].search_count([('payment_transaction_id', '=', tx.id)]), 1)
@@ -121,10 +123,90 @@ class TestPayBridgeNativeFlow(AccountPaymentCommon):
 
     def test_missing_phone_does_not_break_redirect(self):
         self.partner.phone = False
-        tx = self.attempt()
+        tx = self._create_transaction('redirect')
         values = tx._get_specific_rendering_values({})
         self.assertEqual(values['api_url'], const.GATEWAY_URLS['test'])
         self.assertNotIn('phone', dict(values['inputs']))
+
+    def test_sandbox_keeps_native_currency_and_validates_bank_usd(self):
+        tx = self.attempt()
+        self.assertNotEqual(self.currency.name, 'USD')
+        self.assertEqual(tx.currency_id, self.currency)
+        self.assertEqual(tx.scotia_original_currency_alpha, self.currency.name)
+        self.assertEqual(tx.scotia_gateway_currency_numeric, '840')
+        self.assertTrue(tx.scotia_sandbox_override)
+        self.assertFalse(tx.is_live)
+        tx._process(const.PROVIDER_CODE, self.bank_response(tx))
+        self.assertEqual(tx.state, 'done')
+        self.assertEqual(tx.currency_id, self.currency)
+
+    def test_live_always_sends_original_currency(self):
+        self.provider.state = 'enabled'
+        tx = self.attempt()
+        self.assertTrue(tx.is_live)
+        self.assertFalse(tx.scotia_sandbox_override)
+        self.assertEqual(tx.scotia_gateway_currency_alpha, self.currency.name)
+
+    def test_disabling_override_rejects_non_usd_sandbox(self):
+        self.provider.scotia_sandbox_usd_override = False
+        with self.assertRaises(ValidationError): self.attempt()
+
+    def test_currency_settings_cannot_rewrite_existing_attempt(self):
+        self.provider.scotia_display_mode = 'branded'
+        tx = self.attempt()
+        saved = (tx.scotia_oid, tx.scotia_request_datetime, tx.scotia_gateway_currency_numeric)
+        self.provider.scotia_sandbox_usd_override = False
+        with self.assertRaises(ValidationError): tx._scotia_prepare_attempt()
+        self.assertEqual(saved, (tx.scotia_oid, tx.scotia_request_datetime, tx.scotia_gateway_currency_numeric))
+
+    def test_direct_form_cannot_be_issued_twice(self):
+        tx = self.attempt()
+        with self.assertRaises(ValidationError): tx._get_specific_rendering_values({})
+
+    def test_handoff_opens_once_with_unchanged_reference(self):
+        self.provider.scotia_display_mode = 'embedded'
+        tx = self._create_transaction('redirect')
+        rendered = tx._get_specific_rendering_values({})
+        self.assertEqual(rendered['api_url'], const.CHECKOUT_ROUTE)
+        data = dict(rendered['inputs'])
+        self.assertNotIn('hashExtended', data)
+        parameters = tx._scotia_open_handoff(data['access_token'], data['issued'])
+        self.assertEqual(parameters['parentUri'], 'https://odoo.example.test' + const.CHECKOUT_ROUTE)
+        self.assertEqual(parameters['language'], 'en_GB')
+        self.assertEqual(parameters['oid'], tx.scotia_oid)
+        self.assertEqual(parameters['hashExtended'], gateway.request_hash(parameters, 'fixture-secret'))
+        self.assertIsNone(tx._scotia_open_handoff(data['access_token'], data['issued']))
+        self.assertEqual(tx.state, 'draft')
+        self.assertFalse(tx.payment_id)
+
+    def test_invalid_or_cross_transaction_handoff_token_cannot_open_bank(self):
+        self.provider.scotia_display_mode = 'branded'
+        first, second = self.attempt(reference='one'), self.attempt(reference='two')
+        issued = str(int(time.time()))
+        for token in [None, 'invalid', 'é' * 64, second._scotia_checkout_token(issued)]:
+            with self.subTest(token=token), self.assertRaises(ValidationError):
+                first._scotia_open_handoff(token, issued)
+        self.assertFalse(first.scotia_handoff_started)
+
+    def test_expired_handoff_token_cannot_open_bank(self):
+        self.provider.scotia_display_mode = 'branded'
+        tx = self.attempt()
+        issued = str(int(time.time()) - const.CHECKOUT_TOKEN_TTL - 1)
+        with self.assertRaises(ValidationError):
+            tx._scotia_open_handoff(tx._scotia_checkout_token(issued), issued)
+        self.assertFalse(tx.scotia_handoff_started)
+
+    def test_only_embedded_mode_sends_parent_uri(self):
+        self.provider.scotia_display_mode = 'branded'
+        tx = self.attempt()
+        self.assertNotIn('parentUri', tx._scotia_bank_parameters())
+
+    def test_sandbox_response_cannot_authorize_live_transaction(self):
+        tx = self.attempt()
+        tx.is_live = True
+        with self.assertRaises(ValidationError): tx._process(const.PROVIDER_CODE, self.bank_response(tx))
+        self.assertEqual(tx.state, 'draft')
+        self.assertFalse(tx.payment_id)
 
     def test_native_post_processing_error_rolls_back_for_retry(self):
         tx = self.attempt()

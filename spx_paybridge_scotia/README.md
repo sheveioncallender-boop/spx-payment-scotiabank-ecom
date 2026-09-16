@@ -4,7 +4,7 @@ A fresh payment-provider module for **Odoo 19 Enterprise** by **Spxcorp Limited*
 
 - App: **Spxcorp PayBridge - Scotiabank eCom+**
 - Technical module and provider code: `spx_paybridge_scotia`
-- Version: `19.0.1.0.0`
+- Version: `19.0.1.1.0`
 - Repository: `sheveioncallender-boop/spx-payment-scotiabank-ecom`
 - Deployment: new Odoo 19 Enterprise instance on Cloudpepper
 
@@ -39,10 +39,10 @@ settlement fees automatically.
 ## Install on Cloudpepper
 
 1. Use a fresh **Odoo 19 Enterprise** instance with Enterprise Accounting available.
-2. Extract the delivery ZIP. It contains one folder: `spx_paybridge_scotia`.
-3. In this GitHub repository, use **Add file > Upload files**, drag in that whole
-   folder, and commit. It belongs directly at the repository root, so the manifest
-   is `spx_paybridge_scotia/__manifest__.py`.
+2. Select branch **rebuild-odoo19-enterprise** in this repository.
+3. The addon is the single folder `spx_paybridge_scotia` at the repository root.
+   Its manifest is `spx_paybridge_scotia/__manifest__.py`. That whole folder can
+   also be copied to another addons repository without a separate support folder.
 4. Pull/redeploy that branch in Cloudpepper and restart the Odoo service.
 5. Update the Apps list. Remove the **Apps** search filter if it hides payment providers.
 6. Search for **Spxcorp PayBridge** and install it.
@@ -57,6 +57,15 @@ The manifest depends on `payment`, `account_payment`, and Enterprise
 `account_accountant`. Sales and Website/eCommerce are optional existing apps;
 PayBridge does not force their installation just to accept invoice payments.
 
+### Update an installed PayBridge
+
+Pull/redeploy **rebuild-odoo19-enterprise** in Cloudpepper, then upgrade
+**Spxcorp PayBridge** in Apps. Restart Odoo as part of the normal module upgrade.
+Updating the Apps list alone is insufficient: this version adds database fields.
+Verify installed version **19.0.1.1.0**. Existing credentials and completed
+transactions are retained. Start a new sandbox attempt from the original Odoo
+document; old attempts keep the currency and request time they originally used.
+
 ## Configure
 
 1. In **Credentials**, enter the **Test Store ID** and **Test Shared Secret**.
@@ -64,9 +73,11 @@ PayBridge does not force their installation just to accept invoice payments.
 3. In the native **Configuration** tab, select the correct **Payment Journal**.
 4. In that bank journal's incoming payments, confirm Scotiabank has an
    **Outstanding Receipts** account. Odoo supplies its standard method line.
-5. Restrict **Currencies** to those already enabled for this Store ID.
+5. In **Currencies**, allow the Odoo order currencies you accept. Live payments
+   require those currencies to be enabled on the live Store ID.
 6. Ensure the public Odoo base URL uses HTTPS on port 443.
-7. Open **Scotiabank Connection > Check Configuration**.
+7. Open **Scotiabank Settings > Check Configuration**. Choose the display mode,
+   bank language and sandbox override there. Copy Diagnostics gives a masked summary.
 8. Make test payments and complete the acceptance checks in [ACCEPTANCE.md](ACCEPTANCE.md).
 9. Enter live credentials and select **Enabled** after successful checks. Use
    Odoo's standard publication/website availability controls.
@@ -74,9 +85,55 @@ PayBridge does not force their installation just to accept invoice payments.
 The configuration button checks local settings. It does **not** contact the bank,
 prove the credentials valid, charge a card, or claim a connection is live.
 
-For a USD-only test Store ID, make the actual test order/invoice **USD** and allow
-USD on the provider. A TTD amount is never relabelled as USD. There are no amount
-or currency override settings.
+### Sandbox USD override
+
+**Sandbox USD Override** is enabled by default and applies only in **Test Mode**.
+It follows the WooCommerce test setup: the bank receives the same numeric amount
+in USD (840). For example, a **TTD 600.00** test order sends **USD 600.00** to the
+sandbox. This is a **test simulation, not currency conversion**. It is not an FX
+quote or a USD settlement for a TTD order. The transaction records the original
+Odoo currency and bank currency separately and labels the simulation.
+
+A valid sandbox result proceeds through Odoo's usual test transaction and
+accounting behavior using the original document amount/currency. Native Test
+Mode can still confirm orders and create accounting records; use test documents.
+The bank signature is checked against the saved **USD** request before the
+verified response is mapped back to the original Odoo currency for native checks.
+
+When the override is off, Test Mode requires an actual USD order/invoice and USD
+allowed on the provider. In **Enabled** mode, the override has no effect: the bank
+always receives the actual document currency, and a sandbox response cannot
+authorize a live transaction. No production currency override is provided.
+
+### Payment display
+
+| Setting | Customer experience |
+| --- | --- |
+| Direct redirect (default) | Native Odoo submits the signed form directly to the bank. |
+| Branded redirect page | SPXCORP handoff shows the reference and amount before opening the bank page. |
+| Embedded payment page | The bank form opens in an iframe inside the Odoo-hosted SPXCORP page. Card data stays at the bank. |
+
+The logo is the original **SPXCORP LTD** asset from the WooCommerce plugin. The
+header `#07101f`, button `#0f5bb5`, background `#f5f7fb`, handoff wording and
+"Payment integration powered by SPXCORP LTD" attribution match that plugin.
+**Show Spxcorp Branding** controls the logo and attribution on handoff pages.
+When disabled, the header shows the merchant company name. Direct mode has no
+intermediate branded page. **Bank Page Language** defaults to English (UK).
+
+The embedded request includes `parentUri` automatically. The bank's iframe flow
+depends on browser privacy/cookie settings and the issuer's 3-D Secure page;
+use direct redirect when that flow requires a full page. A bank return exits the
+iframe before opening native `/payment/status`. The handoff never interprets
+browser messages as payment approval, restores an order session from a bank
+reference, or changes Odoo's checkout code.
+
+The authenticated handoff can issue its bank form only once, and the handoff
+script guards automatic submission, double-clicks and back/forward restoration.
+Reopening an issued handoff goes to native payment status. A new native payment
+attempt can have a suffix such as `S00002-1`; changed amounts are separate attempts.
+This is not evidence of a duplicate charge. Check the bank and Odoo status before
+starting another attempt when the outcome is unknown. The addon does not suppress
+Odoo's legitimate retry flow or claim to prevent every bank-side replay.
 
 The notification and return URLs are included in each signed payment request:
 
@@ -111,6 +168,13 @@ awaiting confirmation. No parallel accounting ledger is created.
 Only four card digits are retained. Request/response bodies, complete card data,
 CVV values, signatures and secret credentials are never written to diagnostic
 logs or new transaction payload fields.
+
+Summary logs record internal transaction IDs, original/bank currencies, request
+amount and fixed verification outcomes. **Log Transaction Summaries** can disable
+routine summaries; verification failures still produce safe warnings. An invalid
+or unmatched browser return shows a clear unverified-payment page without changing
+financial state. The customer can check the existing native status from there.
+HTTP 200 entries for `/payment/status/poll` alone do not prove a bank approval.
 
 If accounting post-processing fails, use Odoo's transaction status and native
 post-processing retry after correcting the journal/account configuration. The
@@ -160,6 +224,7 @@ Offline protocol/syntax checks (standard Python only):
 
 ```bash
 python spx_paybridge_scotia/tools/check_module.py
+node --test spx_paybridge_scotia/tests/test_checkout.mjs
 ```
 
 Real Odoo import and HTTP parser checks, using an environment with Odoo's Python dependencies:

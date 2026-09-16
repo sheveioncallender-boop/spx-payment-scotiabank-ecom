@@ -1,5 +1,6 @@
 from odoo import _, api, fields, models
 from odoo.exceptions import ValidationError
+from odoo.addons.payment import utils as payment_utils
 
 from .. import const, gateway
 
@@ -31,6 +32,62 @@ class PaymentProvider(models.Model):
         string='Bank Notification URL', compute='_compute_scotia_urls',
     )
     scotia_return_url = fields.Char(string='Customer Return URL', compute='_compute_scotia_urls')
+    scotia_sandbox_usd_override = fields.Boolean(
+        string='Sandbox USD Override', default=True,
+        help='Test Mode only: send the same numeric amount as USD to the test gateway. '
+             'This is a test simulation, not currency conversion. Odoo keeps the original '
+             'order currency. Live payments always use the actual order currency.',
+    )
+    scotia_display_mode = fields.Selection(
+        const.DISPLAY_MODES, string='Payment Display Mode', default='redirect', required=True,
+    )
+    scotia_show_branding = fields.Boolean(string='Show Spxcorp Branding', default=True)
+    scotia_language = fields.Selection([
+        ('en_GB', 'English (UK)'), ('en_US', 'English (US)'),
+        ('es_ES', 'Spanish (Spain)'), ('es_MX', 'Spanish (Mexico)'),
+        ('fr_FR', 'French'), ('pt_BR', 'Portuguese (Brazil)'),
+    ], string='Bank Page Language', default='en_GB', required=True)
+    scotia_log_summary = fields.Boolean(
+        string='Log Transaction Summaries', default=True,
+        help='Record internal transaction IDs, currency decisions and verification outcomes. '
+             'Secrets, signatures, customer details and complete bank payloads are excluded.',
+    )
+    scotia_diagnostics = fields.Text(
+        string='Configuration Summary', compute='_compute_scotia_diagnostics',
+        groups='base.group_system',
+    )
+
+    @api.depends('state', 'scotia_display_mode', 'scotia_sandbox_store_id',
+                 'scotia_sandbox_shared_secret', 'scotia_live_store_id',
+                 'scotia_live_shared_secret', 'scotia_sandbox_usd_override',
+                 'available_currency_ids', 'journal_id', 'scotia_language')
+    def _compute_scotia_diagnostics(self):
+        for provider in self:
+            environment = 'test' if provider.state == 'test' else 'live'
+            store, secret = provider.sudo()._scotia_credentials(environment)
+            lines = provider.journal_id.inbound_payment_method_line_ids.filtered(
+                lambda line: line.payment_provider_id == provider
+            )
+            try:
+                gateway.public_base_url(provider.get_base_url())
+                https = 'Ready'
+            except ValueError:
+                https = 'Needs a public HTTPS URL on port 443'
+            provider.scotia_diagnostics = '\n'.join([
+                'PayBridge 19.0.1.1.0 | Local configuration only; bank acceptance not tested',
+                f'Mode: {provider.state} | Display: {provider.scotia_display_mode}',
+                f'Credentials: {"Entered" if store and secret else "Missing"}',
+                f'Store: {"****" + store[-4:] if store else "Missing"}',
+                f'Gateway: {const.GATEWAY_URLS[environment]}',
+                'Sandbox currency: USD (840)',
+                f'Sandbox numeric-amount simulation (Test Mode only): {"On" if provider.scotia_sandbox_usd_override else "Off"}',
+                f'Allowed order currencies: {", ".join(provider.available_currency_ids.mapped("name")) or "Not configured"}',
+                f'HTTPS: {https}',
+                f'Payment journal: {provider.journal_id.display_name or "Missing"}',
+                f'Incoming method / outstanding account: {"Ready" if len(lines) == 1 and lines.payment_account_id else "Needs configuration"}',
+                'Request signature: HMACSHA256 | Clock: UTC | Transaction type: Sale',
+                f'Bank page language: {provider.scotia_language}',
+            ])
 
     def _compute_scotia_urls(self):
         for provider in self:
@@ -48,6 +105,28 @@ class PaymentProvider(models.Model):
         if self.code == const.PROVIDER_CODE:
             currencies = currencies.filtered(lambda c: c.name in const.CURRENCY_CODES)
         return currencies
+
+    @api.model
+    def _get_compatible_providers(
+        self, company_id, partner_id, amount, currency_id=None, force_tokenization=False,
+        is_express_checkout=False, is_validation=False, report=None, **kwargs,
+    ):
+        providers = super()._get_compatible_providers(
+            company_id, partner_id, amount, currency_id=currency_id,
+            force_tokenization=force_tokenization, is_express_checkout=is_express_checkout,
+            is_validation=is_validation, report=report, **kwargs,
+        )
+        currency = self.env['res.currency'].browse(currency_id).exists()
+        if currency and currency.name != 'USD':
+            excluded = providers.filtered(lambda p: p.code == const.PROVIDER_CODE
+                                           and p.state == 'test'
+                                           and not p.scotia_sandbox_usd_override)
+            payment_utils.add_to_report(
+                report, excluded, available=False,
+                reason=_('Scotiabank Test Mode requires USD or the Sandbox USD Override.'),
+            )
+            providers -= excluded
+        return providers
 
     def _compute_feature_support_fields(self):
         super()._compute_feature_support_fields()

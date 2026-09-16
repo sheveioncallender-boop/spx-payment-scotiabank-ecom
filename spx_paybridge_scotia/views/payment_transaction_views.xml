@@ -7,13 +7,22 @@
         <field name="arch" type="xml">
             <xpath expr="//sheet" position="inside">
                 <group string="Scotiabank eCom+" invisible="provider_code != 'spx_paybridge_scotia'">
+                    <field name="scotia_sandbox_override" invisible="1"/>
+                    <div class="alert alert-warning" colspan="2" invisible="not scotia_sandbox_override">
+                        Sandbox USD simulation. The bank tested the numeric amount in USD;
+                        Odoo retains the original document currency. This is not a currency conversion or a live charge.
+                    </div>
                     <group string="Payment Attempt">
                         <field name="scotia_environment"/>
                         <field name="scotia_oid"/>
                         <field name="scotia_gateway_store_id"/>
                         <field name="scotia_request_datetime"/>
                         <field name="scotia_request_amount"/>
+                        <field name="scotia_original_currency_alpha"/>
                         <field name="scotia_gateway_currency_alpha"/>
+                        <field name="scotia_gateway_currency_numeric"/>
+                        <field name="scotia_display_mode"/>
+                        <field name="scotia_handoff_started"/>
                     </group>
                     <group string="Verified Result">
                         <field name="scotia_response_hash_validated"/>

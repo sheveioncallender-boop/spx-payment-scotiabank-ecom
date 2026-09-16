@@ -13,6 +13,8 @@ from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 from urllib.parse import urlsplit
 
+from . import const
+
 
 class InvalidResponse(ValueError):
     """A bank message cannot be trusted or does not match its payment attempt."""
@@ -40,6 +42,25 @@ class VerifiedResponse:
     card_brand: str
     fingerprint: str
     signature_type: str
+
+
+def payment_currency(environment, order_currency, sandbox_usd_override=False):
+    """A sandbox simulation never changes the live currency or converts an amount."""
+    if environment not in ('test', 'live') or order_currency not in const.CURRENCY_CODES:
+        raise InvalidResponse('unsupported_currency_or_environment')
+    if environment == 'test':
+        if sandbox_usd_override:
+            return 'USD'
+        if order_currency != 'USD':
+            raise InvalidResponse('sandbox_requires_usd')
+    return order_currency
+
+
+def checkout_token_is_current(issued, now):
+    if not isinstance(issued, str) or not re.fullmatch(r'[0-9]{1,12}', issued):
+        return False
+    age = now - int(issued)
+    return 0 <= age <= const.CHECKOUT_TOKEN_TTL
 
 
 def amount_string(amount):

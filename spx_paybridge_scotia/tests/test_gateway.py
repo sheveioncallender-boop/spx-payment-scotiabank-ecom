@@ -4,7 +4,7 @@ import hmac
 import unittest
 from dataclasses import replace
 
-from .. import gateway
+from .. import const, gateway
 
 
 class TestGatewayProtocol(unittest.TestCase):
@@ -144,3 +144,32 @@ class TestGatewayProtocol(unittest.TestCase):
         self.assertEqual(gateway.public_base_url('https://odoo.example.test/'), 'https://odoo.example.test')
         for url in ['http://odoo.test', 'https://odoo.test:8069', 'https://odoo.test/path', 'https://user:secret@odoo.test', 'javascript:alert(1)']:
             with self.subTest(url=url), self.assertRaises(ValueError): gateway.public_base_url(url)
+
+    def test_sandbox_override_uses_usd_for_supported_order_currencies(self):
+        for currency in const.CURRENCY_CODES:
+            with self.subTest(currency=currency):
+                self.assertEqual(gateway.payment_currency('test', currency, True), 'USD')
+
+    def test_sandbox_without_override_requires_real_usd(self):
+        self.assertEqual(gateway.payment_currency('test', 'USD', False), 'USD')
+        with self.assertRaises(gateway.InvalidResponse):
+            gateway.payment_currency('test', 'TTD', False)
+
+    def test_live_ignores_sandbox_override(self):
+        for currency in const.CURRENCY_CODES:
+            for override in (True, False):
+                with self.subTest(currency=currency, override=override):
+                    self.assertEqual(gateway.payment_currency('live', currency, override), currency)
+
+    def test_unknown_currency_or_mode_cannot_use_override(self):
+        for environment, currency in [('disabled', 'TTD'), ('test', 'unknown'), ('live', 'unknown')]:
+            with self.subTest(environment=environment, currency=currency), self.assertRaises(gateway.InvalidResponse):
+                gateway.payment_currency(environment, currency, True)
+
+    def test_checkout_token_age_rejects_expired_future_and_invalid_values(self):
+        now = 1800000000
+        self.assertTrue(gateway.checkout_token_is_current(str(now), now))
+        self.assertTrue(gateway.checkout_token_is_current(str(now - 1799), now))
+        for issued in [str(now - 1801), str(now + 1), '', '-1', None, 'nan', '１２３', '1' * 40]:
+            with self.subTest(issued=issued):
+                self.assertFalse(gateway.checkout_token_is_current(issued, now))

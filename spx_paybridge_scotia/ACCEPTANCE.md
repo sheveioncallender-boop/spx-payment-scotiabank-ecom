@@ -8,7 +8,14 @@ and bank-supplied test card cases. No additional account feature is required.
 | Fresh install | PayBridge installs, Scotiabank provider starts Disabled, credential fields are empty. |
 | Missing credentials | Test/Enabled activation requires credentials for that mode only. |
 | Journal setup | The normal bank journal has one incoming payment method for this provider and an Outstanding Receipts account. |
-| Currency | The actual order/invoice currency matches the gateway; no currency override exists. |
+| Sandbox override on | A TTD 600 test document sends 600.00 / 840 to the sandbox. Odoo retains TTD 600; transaction and handoff label the USD simulation. |
+| Sandbox override off | Non-USD documents cannot start this test provider. An actual USD document can. |
+| Live currency | Enabled mode sends actual order currency, including TTD 780, even with the sandbox override selected. |
+| Display options | Direct, original SPXCORP branded, and embedded pages open the bank form with one unchanged reference and amount. |
+| Branding / language | Branding toggle hides/shows the original logo and attribution; selected language reaches the bank. |
+| Repeat handoff | Double-click, auto-submit and re-opening the same issued handoff do not produce another bank form. Check unknown outcomes before starting a new native attempt. |
+| Embedded 3-D Secure | Complete the issuer challenge; callback returns to top-level native Odoo status. Test target browsers; use direct redirect if a browser/issuer does not support framing. |
+| Unverified return | Clear unverified-payment message; no success/accounting mutation from an invalid signature or unknown reference. |
 | Approved invoice | Native transaction becomes Done. Odoo creates one customer payment, posts its journal entry and matches the invoice receivable. |
 | Declined invoice | Transaction becomes Error; no customer payment or successful accounting entry is created. |
 | Customer cancellation | A signed negative bank result remains unsuccessful; no browser parameter can mark an order paid. |
@@ -32,6 +39,8 @@ Do not use a successful local configuration check as evidence that a bank paymen
 was accepted. Record bank sandbox references and the resulting Odoo transaction,
 customer payment, journal entry and invoice status for the acceptance run.
 
-Sandbox-only USD setup: create a real USD quotation/invoice or USD website
-pricelist. Do not test a TTD invoice by changing only the currency label sent to
-the gateway.
+Test Mode can still create normal Odoo orders/payments/accounting entries. Use
+test documents and inspect original/bank currencies in the transaction. The
+sandbox override simulates the numeric amount in USD; it does not perform FX
+conversion or affect live payments. No test-mode flag is used to bypass signature
+verification or Odoo's normal post-processing.

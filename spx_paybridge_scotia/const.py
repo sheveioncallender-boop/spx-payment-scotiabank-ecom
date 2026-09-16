@@ -2,6 +2,11 @@ PROVIDER_CODE = 'spx_paybridge_scotia'
 PROTOCOL_VERSION = 1
 RETURN_ROUTE = '/payment/spx_paybridge_scotia/return'
 NOTIFY_ROUTE = '/payment/spx_paybridge_scotia/notify'
+CHECKOUT_ROUTE = '/payment/spx_paybridge_scotia/checkout'
+UNVERIFIED_ROUTE = '/payment/spx_paybridge_scotia/unverified'
+CHECKOUT_TOKEN_TTL = 1800
+DISPLAY_MODES = [('redirect', 'Direct redirect'), ('branded', 'Branded redirect page'),
+                 ('embedded', 'Embedded payment page')]
 GATEWAY_URLS = {
     'test': 'https://test.ipg-online.com/connect/gateway/processing',
     'live': 'https://www2.ipg-online.com/connect/gateway/processing',

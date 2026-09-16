@@ -40,7 +40,7 @@ if args.odoo_root:
     import odoo.addons.spx_paybridge_scotia
     prefix = 'odoo.addons.spx_paybridge_scotia'
     print('Actual Odoo import:', odoo.release.version, flush=True)
-    test_files = ['test_gateway', 'test_http']
+    test_files = ['test_gateway', 'test_http', 'test_templates']
 else:
     prefix = 'spx_paybridge_scotia'
     package = types.ModuleType(prefix)
