@@ -3,11 +3,18 @@
 Fresh payment provider for **Odoo 19 Enterprise**, by **Spxcorp Limited**.
 
 The complete new module is in [`spx_paybridge_scotia`](spx_paybridge_scotia/),
-version **19.0.1.1.1**, on branch **rebuild-odoo19-enterprise**.
+version **19.0.1.1.2**, on branch **rebuild-odoo19-enterprise**.
 Pull/redeploy that branch through Cloudpepper, then install **Spxcorp PayBridge**.
 If already installed, **upgrade the app** after pulling; updating the Apps list
 alone does not install the new settings and transaction fields.
 The manifest must be at `spx_paybridge_scotia/__manifest__.py`.
+
+Version 1.1.2 adds the optional [Native POS Completion companion](spx_paybridge_scotia_pos/README.md)
+to refresh confirmed online orders, remove temporary duplicate receipt lines,
+and run Odoo's normal paid-order loyalty hook. On existing databases, update
+the Apps list, upgrade PayBridge, verify the companion is installed, then reload
+POS. Gateway signature verification and accounting behavior are unchanged.
+Sandbox acceptance of this update is required after deployment.
 
 Version 1.1.1 fixes the `scotia_sandbox_usd_override does not exist` error that
 could prevent an Apps upgrade after new code was loaded against the old schema.

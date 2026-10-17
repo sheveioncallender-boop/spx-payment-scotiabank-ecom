@@ -1,6 +1,6 @@
 {
     'name': 'Spxcorp PayBridge - Scotiabank eCom+',
-    'version': '19.0.1.1.1',
+    'version': '19.0.1.1.2',
     'category': 'Accounting/Payment Providers',
     'summary': 'Scotiabank hosted payments with native Odoo 19 Enterprise accounting',
     'description': '''

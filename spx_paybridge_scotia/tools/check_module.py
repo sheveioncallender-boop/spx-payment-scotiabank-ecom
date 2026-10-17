@@ -28,6 +28,16 @@ assert manifest['version'].startswith('19.0.')
 assert 'account_accountant' in manifest['depends']
 for path in manifest['data']:
     assert (ADDON / path).is_file(), path
+companion = ROOT / 'spx_paybridge_scotia_pos'
+for path in companion.rglob('*.py'):
+    ast.parse(path.read_text(), filename=str(path))
+companion_manifest = ast.literal_eval((companion / '__manifest__.py').read_text())
+assert companion_manifest['auto_install'] is True
+assert companion_manifest['depends'] == ['spx_paybridge_scotia', 'pos_online_payment']
+for paths in companion_manifest['assets'].values():
+    for path in paths:
+        assert (ROOT / path).is_file(), path
+print('POS companion syntax, dependencies and assets: PASS', flush=True)
 print('Python/XML syntax, manifest, Enterprise dependency, and declared files: PASS', flush=True)
 
 if args.odoo_root:
@@ -38,6 +48,12 @@ if args.odoo_root:
     config['addons_path'] = str(args.odoo_root.resolve() / 'addons') + ',' + str(ROOT)
     odoo.modules.module.initialize_sys_path()
     import odoo.addons.spx_paybridge_scotia
+    import odoo.addons.spx_paybridge_scotia_pos
+    from odoo.tools.js_transpiler import transpile_javascript
+    asset = companion / 'static/src/online_payment.js'
+    transpiled = transpile_javascript('/spx_paybridge_scotia_pos/static/src/online_payment.js', asset.read_text())
+    assert '@spx_paybridge_scotia_pos/online_payment' in transpiled
+    print('POS companion real Odoo import and JS asset transpilation: PASS', flush=True)
     prefix = 'odoo.addons.spx_paybridge_scotia'
     print('Actual Odoo import:', odoo.release.version, flush=True)
     test_files = ['test_gateway', 'test_http', 'test_templates', 'test_upgrade_prefetch']

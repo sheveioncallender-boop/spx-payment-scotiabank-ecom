@@ -17,3 +17,16 @@ jobs:
         with:
           node-version: '20'
       - run: node --test spx_paybridge_scotia/tests/test_checkout.mjs
+      - run: node --test spx_paybridge_scotia_pos/tests/test_online_payment.mjs
+      - uses: actions/checkout@v4
+        with:
+          repository: odoo/odoo
+          ref: dbe0c5015da3b1f00c25613572fed695d8470d20
+          path: odoo-reference
+          persist-credentials: false
+          sparse-checkout: |
+            addons/pos_online_payment/static/src/app/utils/order_payment_validation.js
+          sparse-checkout-cone-mode: false
+      - run: node --test spx_paybridge_scotia_pos/tests/test_online_payment.mjs
+        env:
+          ODOO_ROOT: ${{ github.workspace }}/odoo-reference
