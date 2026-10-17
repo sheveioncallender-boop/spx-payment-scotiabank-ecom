@@ -348,7 +348,16 @@ class PaymentTransaction(models.Model):
         elif result.outcome == 'cancel':
             self._set_canceled(state_message=_('The payment was cancelled at the bank.'))
         else:
-            self._set_error(_('Scotiabank did not approve this payment. Please try another payment method.'))
+            # The approval code was authenticated by _scotia_verify above.
+            # Explain the failure without changing state or launching a retry.
+            reason = gateway.failure_reason(result.approval_code)
+            if reason == 'cancelled':
+                message = _('This payment attempt was cancelled. You can retry from the original order or invoice.')
+            elif reason == 'authentication':
+                message = _('Card authentication could not be completed. Please retry from the original order or invoice, or choose another payment method.')
+            else:
+                message = _('Scotiabank did not approve this payment. Please try another payment method.')
+            self._set_error(message)
         self._scotia_log('verified_' + result.outcome)
         # No account.payment creation, invoice posting, sale confirmation, custom
         # journal entries, commits, or swallowed post-processing errors here.

@@ -229,3 +229,16 @@ class TestPayBridgeNativeFlow(AccountPaymentCommon):
         self.assertEqual(self.provider.support_refund, 'none')
         self.assertFalse(self.provider.support_manual_capture)
         self.assertFalse(self.provider.support_tokenization)
+
+    def test_cancelled_checkout_and_authentication_failure_have_clear_messages(self):
+        for approval, expected_message in [
+            ('N:-5993:Cancelled by user', 'This payment attempt was cancelled.'),
+            ('N:-5102:ECI 7', 'Card authentication could not be completed.'),
+        ]:
+            with self.subTest(approval=approval):
+                tx = self.attempt()
+                tx._process(const.PROVIDER_CODE, self.bank_response(tx, approval=approval))
+                self.assertEqual(tx.state, 'error')
+                self.assertIn(expected_message, tx.state_message)
+                tx._post_process()
+                self.assertFalse(tx.payment_id)

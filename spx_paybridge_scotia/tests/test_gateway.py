@@ -173,3 +173,29 @@ class TestGatewayProtocol(unittest.TestCase):
         for issued in [str(now - 1801), str(now + 1), '', '-1', None, 'nan', '１２３', '1' * 40]:
             with self.subTest(issued=issued):
                 self.assertFalse(gateway.checkout_token_is_current(issued, now))
+
+    def test_known_failure_reasons_preserve_unpaid_outcome(self):
+        for approval, reason in [
+            ('N:-5993:Cancelled by user', 'cancelled'),
+            ('N:-5102:ECI 7', 'authentication'),
+            ('N:DECLINED', 'declined'),
+            ('N:-9999:Unknown reason', 'declined'),
+        ]:
+            with self.subTest(approval=approval):
+                result = self.verify(self.signed(approval_code=approval))
+                self.assertEqual(result.outcome, 'error')
+                self.assertEqual(gateway.failure_reason(result.approval_code), reason)
+
+    def test_unsigned_failure_details_cannot_change_customer_reason(self):
+        data = self.signed(approval_code='N:DECLINED')
+        data.update(fail_reason='N:-5993:Cancelled by user',
+                    response_code_3dsecure='5', status='CANCELLED')
+        result = self.verify(data)
+        self.assertEqual(result.outcome, 'error')
+        self.assertEqual(gateway.failure_reason(result.approval_code), 'declined')
+
+    def test_failure_reason_does_not_match_partial_codes_or_success(self):
+        for approval in ['Y:-5993:Approved', '?:-5993:Waiting', 'N:-59930:Other',
+                         'N:-51020:Other', 'N:-5993', 'Cancelled by user']:
+            with self.subTest(approval=approval):
+                self.assertEqual(gateway.failure_reason(approval), 'declined')

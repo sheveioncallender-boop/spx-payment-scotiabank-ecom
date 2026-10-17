@@ -113,6 +113,19 @@ def standard_response_hash(parameters, secret, expected, source='return'):
     return _hmac(secret, '|'.join(parts))
 
 
+def failure_reason(verified_approval_code):
+    """Presentation only, called AFTER response verification.
+
+    A cancelled checkout and an ECI authentication failure are not evidence of
+    a card issuer declining funds. Keep the native financial outcome unchanged;
+    never classify from unsigned status, fail_reason, or 3DS response fields.
+    """
+    parts = verified_approval_code.split(':', 2)
+    if len(parts) < 3 or parts[0] != 'N':
+        return 'declined'
+    return {'-5993': 'cancelled', '-5102': 'authentication'}.get(parts[1], 'declined')
+
+
 def verify_response(parameters, secrets, expected, source='return'):
     if source not in ('return', 'notification'):
         raise InvalidResponse('invalid_source')
